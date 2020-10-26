@@ -1,13 +1,13 @@
 'use strict';
 
-const util = require('hexo-util');
+const { highlight } = require('hexo-util');
 
 const code = [
   'if tired && night:',
   '  sleep()'
 ].join('\n');
 
-const content = [
+exports.content = [
   '# Title',
   '``` python',
   code,
@@ -24,12 +24,10 @@ const content = [
   '{% endquote %}'
 ].join('\n');
 
-exports.content = content;
-
 exports.expected = [
   '<h1 id="Title"><a href="#Title" class="headerlink" title="Title"></a>Title</h1>',
-  util.highlight(code, {lang: 'python'}),
-  '\n\n<p>some content</p>\n',
+  highlight(code, {lang: 'python'}),
+  '\n<p>some content</p>\n',
   '<h2 id="Another-title"><a href="#Another-title" class="headerlink" title="Another title"></a>Another title</h2>',
   '<blockquote>',
   '<p>quote content</p>\n',
@@ -40,8 +38,8 @@ exports.expected = [
 
 exports.expected_disable_nunjucks = [
   '<h1 id="Title"><a href="#Title" class="headerlink" title="Title"></a>Title</h1>',
-  util.highlight(code, {lang: 'python'}),
-  '\n\n<p>some content</p>\n',
+  highlight(code, {lang: 'python'}),
+  '\n<p>some content</p>\n',
   '<h2 id="Another-title"><a href="#Another-title" class="headerlink" title="Another title"></a>Another title</h2>',
   '<p>{% blockquote %}<br>',
   'quote content<br>',
@@ -50,3 +48,53 @@ exports.expected_disable_nunjucks = [
   'quote content<br>',
   '{% endquote %}</p>'
 ].join('');
+
+exports.content_for_issue_3346 = [
+  '# Title',
+  '```',
+  '{% test1 %}',
+  '{{ test2 }}',
+  '```',
+  'some content',
+  '',
+  '## Another title',
+  '{% blockquote %}',
+  'quote content',
+  '{% endblockquote %}'
+].join('\n');
+
+exports.expected_for_issue_3346 = [
+  '<h1 id="Title"><a href="#Title" class="headerlink" title="Title"></a>Title</h1>',
+  highlight('{% test1 %}\n{{ test2 }}').replace(/{/g, '&#123;').replace(/}/g, '&#125;'), // Escaped by backtick_code_block
+  '\n<p>some content</p>\n',
+  '<h2 id="Another-title"><a href="#Another-title" class="headerlink" title="Another title"></a>Another title</h2>',
+  '<blockquote>',
+  '<p>quote content</p>\n',
+  '</blockquote>'
+].join('');
+
+exports.content_for_issue_4317 = [
+  '```sh',
+  'echo "Hi"',
+  '',
+  '```',
+  '{% gist gist_id %}',
+  '',
+  '```sh',
+  'echo "Hi"',
+  '```',
+  '',
+  '{% gist gist_id_2 %}',
+  '',
+  '```sh',
+  'echo "Hi"',
+  '```'
+].join('\n');
+
+exports.content_for_issue_4460 = [
+  '```html',
+  '<body>',
+  '<!-- here goes the rest of the page -->',
+  '</body>',
+  '```'
+].join('\n');

@@ -9,20 +9,21 @@ describe('list_posts', () => {
     config: hexo.config
   };
 
-  ctx.url_for = require('../../../lib/plugins/helper/url_for').bind(ctx);
-
   const listPosts = require('../../../lib/plugins/helper/list_posts').bind(ctx);
 
   hexo.config.permalink = ':title/';
 
-  before(() => hexo.init().then(() => Post.insert([
-    {source: 'foo', slug: 'foo', title: 'Its', date: 1e8},
-    {source: 'bar', slug: 'bar', title: 'Chemistry', date: 1e8 + 1},
-    {source: 'baz', slug: 'baz', title: 'Bitch', date: 1e8 - 1}
-  ])).then(() => {
+  before(async () => {
+    await hexo.init();
+    await Post.insert([
+      {source: 'foo', slug: 'foo', title: 'Its', date: 1e8},
+      {source: 'bar', slug: 'bar', title: 'Chemistry', date: 1e8 + 1},
+      {source: 'baz', slug: 'baz', title: 'Bitch', date: 1e8 - 1}
+    ]);
+
     hexo.locals.invalidate();
     ctx.site = hexo.locals.toObject();
-  }));
+  });
 
   it('default', () => {
     const result = listPosts();

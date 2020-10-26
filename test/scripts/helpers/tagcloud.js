@@ -12,25 +12,27 @@ describe('tagcloud', () => {
     config: hexo.config
   };
 
-  ctx.url_for = require('../../../lib/plugins/helper/url_for').bind(ctx);
-
   const tagcloud = require('../../../lib/plugins/helper/tagcloud').bind(ctx);
 
-  before(() => hexo.init().then(() => Post.insert([
-    {source: 'foo', slug: 'foo'},
-    {source: 'bar', slug: 'bar'},
-    {source: 'baz', slug: 'baz'},
-    {source: 'boo', slug: 'boo'}
-  ])).then(posts => // TODO: Warehouse needs to add a mutex lock when writing data to avoid data sync problem
-    Promise.each([
+  before(async () => {
+    await hexo.init();
+    const posts = await Post.insert([
+      {source: 'foo', slug: 'foo'},
+      {source: 'bar', slug: 'bar'},
+      {source: 'baz', slug: 'baz'},
+      {source: 'boo', slug: 'boo'}
+    ]);
+    // TODO: Warehouse needs to add a mutex lock when writing data to avoid data sync problem
+    await Promise.all([
       ['bcd'],
       ['bcd', 'cde'],
       ['bcd', 'cde', 'abc'],
       ['bcd', 'cde', 'abc', 'def']
-    ], (tags, i) => posts[i].setTags(tags))).then(() => {
+    ].map((tags, i) => posts[i].setTags(tags)));
+
     hexo.locals.invalidate();
     ctx.site = hexo.locals.toObject();
-  }));
+  });
 
   it('default', () => {
     const result = tagcloud();
@@ -41,6 +43,18 @@ describe('tagcloud', () => {
       '<a href="/tags/cde/" style="font-size: 16.67px;">cde</a>',
       '<a href="/tags/def/" style="font-size: 10px;">def</a>'
     ].join(' '));
+  });
+
+  it('no tags', async () => {
+    const hexo = new Hexo(__dirname);
+    await hexo.init();
+    hexo.locals.invalidate();
+    hexo.site = hexo.locals.toObject();
+    const tagcloud = require('../../../lib/plugins/helper/tagcloud').bind(hexo);
+
+    const result = tagcloud();
+
+    result.should.eql('');
   });
 
   it('specified collection', () => {
@@ -94,7 +108,7 @@ describe('tagcloud', () => {
     ].join(' '));
   });
 
-  it('orderby', () => {
+  it('orderby - length', () => {
     const result = tagcloud({
       orderby: 'length'
     });
@@ -105,6 +119,25 @@ describe('tagcloud', () => {
       '<a href="/tags/cde/" style="font-size: 16.67px;">cde</a>',
       '<a href="/tags/bcd/" style="font-size: 20px;">bcd</a>'
     ].join(' '));
+  });
+
+  it('orderby - random', () => {
+    const result1 = tagcloud({
+      orderby: 'random'
+    });
+
+    const result2 = tagcloud({
+      orderby: 'rand'
+    });
+
+    result1.should.have.string('<a href="/tags/def/" style="font-size: 10px;">def</a>');
+    result1.should.have.string('<a href="/tags/abc/" style="font-size: 13.33px;">abc</a>');
+    result1.should.have.string('<a href="/tags/cde/" style="font-size: 16.67px;">cde</a>');
+    result1.should.have.string('<a href="/tags/bcd/" style="font-size: 20px;">bcd</a>');
+    result2.should.have.string('<a href="/tags/def/" style="font-size: 10px;">def</a>');
+    result2.should.have.string('<a href="/tags/abc/" style="font-size: 13.33px;">abc</a>');
+    result2.should.have.string('<a href="/tags/cde/" style="font-size: 16.67px;">cde</a>');
+    result2.should.have.string('<a href="/tags/bcd/" style="font-size: 20px;">bcd</a>');
   });
 
   it('order', () => {
@@ -220,6 +253,18 @@ describe('tagcloud', () => {
     ].join(' '));
   });
 
+  it('color - missing start_color', () => {
+    try {
+      tagcloud({
+        color: true,
+        end_color: 'pink'
+      });
+      should.fail();
+    } catch (err) {
+      err.message.should.eql('start_color is required!');
+    }
+  });
+
   it('separator', () => {
     const result = tagcloud({
       separator: ', '
@@ -231,5 +276,18 @@ describe('tagcloud', () => {
       '<a href="/tags/cde/" style="font-size: 16.67px;">cde</a>',
       '<a href="/tags/def/" style="font-size: 10px;">def</a>'
     ].join(', '));
+  });
+
+  it('class name', () => {
+    const result = tagcloud({
+      class: 'tag-cloud'
+    });
+
+    result.should.eql([
+      '<a href="/tags/abc/" style="font-size: 13.33px;" class="tag-cloud-3">abc</a>',
+      '<a href="/tags/bcd/" style="font-size: 20px;" class="tag-cloud-10">bcd</a>',
+      '<a href="/tags/cde/" style="font-size: 16.67px;" class="tag-cloud-7">cde</a>',
+      '<a href="/tags/def/" style="font-size: 10px;" class="tag-cloud-0">def</a>'
+    ].join(' '));
   });
 });

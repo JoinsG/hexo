@@ -1,5 +1,7 @@
 'use strict';
 
+const { url_for } = require('hexo-util');
+
 describe('paginator', () => {
   const Hexo = require('../../../lib/hexo');
   const hexo = new Hexo(__dirname);
@@ -13,12 +15,10 @@ describe('paginator', () => {
     config: hexo.config
   };
 
-  ctx.url_for = require('../../../lib/plugins/helper/url_for').bind(ctx);
-
   const paginator = require('../../../lib/plugins/helper/paginator').bind(ctx);
 
   function link(i) {
-    return ctx.url_for(i === 1 ? '' : 'page/' + i + '/');
+    return url_for.call(ctx, i === 1 ? '' : 'page/' + i + '/');
   }
 
   function checkResult(result, data) {
@@ -279,5 +279,27 @@ describe('paginator', () => {
     const result = paginator({});
 
     result.should.eql('');
+  });
+
+  it('escape', () => {
+    const result = paginator({
+      current: 2,
+      prev_text: '<foo>',
+      next_text: '<bar>',
+      escape: false
+    });
+
+    result.should.eql([
+      '<a class="extend prev" rel="prev" href="/">',
+      '<foo></a>',
+      '<a class="page-number" href="/">1</a>',
+      '<span class="page-number current">2</span>',
+      '<a class="page-number" href="/page/3/">3</a>',
+      '<a class="page-number" href="/page/4/">4</a>',
+      '<span class="space">&hellip;</span>',
+      '<a class="page-number" href="/page/10/">10</a>',
+      '<a class="extend next" rel="next" href="/page/3/">',
+      '<bar></a>'
+    ].join(''));
   });
 });
